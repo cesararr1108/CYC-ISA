@@ -1,0 +1,29 @@
+
+.tabla-busqueda-componete tbody tr td {
+    font-size: 0.6rem !important;
+}
+
+.tabla-busqueda-componete thead tr th {
+    font-size: 0.6rem !important;
+}
+
+.tabla-busqueda-componete tbody tr:focus {
+    border: none;
+    outline: none;
+}
+
+.tabla-busqueda-componete tbody tr:focus td {
+    background-color: rgb(208, 195, 255);
+    color: #2e293a;
+}
+
+.tabla-busqueda-componete tbody tr:hover {
+    border: none;
+    outline: none;
+    cursor: pointer;
+}
+
+.tabla-busqueda-componete tbody tr:hover td {
+    background-color: rgb(235, 235, 235);
+    color: #0c0b0e;
+}

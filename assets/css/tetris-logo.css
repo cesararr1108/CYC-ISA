@@ -1,0 +1,213 @@
+/* ============================================ */
+/* TETRIS LOGO STYLES - Global */
+/* ============================================ */
+
+/* Logo Tetris Styles - Main Container */
+.tetris-logo-container {
+    display: grid;
+    grid-template-columns: 30px 30px 50px;
+    grid-template-rows: 30px 30px 30px;
+    gap: 4px;
+    align-items: start;
+    perspective: 1000px;
+}
+
+.tetris-row {
+    display: contents;
+}
+
+.tetris-row-middle {
+    display: contents;
+}
+
+.tetris-right-column {
+    display: contents;
+}
+
+.tetris-block {
+    border-radius: 2px;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+    animation: fallTetris 0.8s ease-in forwards;
+    transform-origin: center;
+}
+
+/* Block Sizes - Main Logo */
+.tetris-block.size-1 {
+    width: 30px;
+    height: 30px;
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.tetris-block.size-2 {
+    width: 30px;
+    height: 30px;
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.tetris-block.size-3 {
+    width: 100px;
+    height: 30px;
+}
+
+.tetris-block.size-4-v {
+    width: 64px;
+    height: 64px;
+    grid-column: 1 / 3;
+    grid-row: 2 / 4;
+}
+
+.tetris-block.size-2-tall {
+    width: 50px;
+    height: 30px;
+    grid-column: 3;
+    grid-row: 3;
+}
+
+.tetris-block.size-3-tall {
+    width: 50px;
+    height: 60px;
+    grid-column: 3;
+    grid-row: 1 / 3;
+}
+
+/* Colors - Bootstrap Primary Palette */
+.tetris-block.purple-light {
+    background: linear-gradient(135deg, #8b95ff 0%, #696cff 100%);
+}
+
+.tetris-block.purple-medium {
+    background: linear-gradient(135deg, #696cff 0%, #4f5adc 100%);
+}
+
+.tetris-block.purple-dark {
+    background: linear-gradient(135deg, #4f5adc 0%, #3d47b5 100%);
+}
+
+/* Main Animation - One Time Fall */
+@keyframes fallTetris {
+    0% {
+        transform: translateY(-200px) rotateZ(0deg) scale(0.8);
+        opacity: 0;
+    }
+    70% {
+        transform: translateY(8px) rotateZ(1deg) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(0) rotateZ(0deg) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Animation Delays - Main Logo */
+.tetris-row:nth-child(1) .tetris-block:nth-child(1) { animation-delay: 0s; }
+.tetris-row:nth-child(1) .tetris-block:nth-child(2) { animation-delay: 0.12s; }
+
+.tetris-row-middle .tetris-block:nth-child(1) { animation-delay: 0.24s; }
+
+.tetris-right-column .tetris-block:nth-child(1) { animation-delay: 0.36s; }
+.tetris-right-column .tetris-block:nth-child(2) { animation-delay: 0.48s; }
+
+/* Logo Text */
+.tetris-logo-text {
+    margin-top: 12px;
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #696cff;
+    animation: textFadeIn 0.6s ease-in forwards;
+    animation-delay: 0.6s;
+    opacity: 0;
+}
+
+@keyframes textFadeIn {
+    to {
+        opacity: 1;
+    }
+}
+
+/* ============================================ */
+/* TETRIS LOGO LOADER - Small Animated Version */
+/* ============================================ */
+
+.tetris-logo-loader {
+    display: grid;
+    grid-template-columns: 15px 15px 25px;
+    grid-template-rows: 15px 15px 15px;
+    gap: 2px;
+    perspective: 1000px;
+    margin: 0 auto;
+    width: fit-content;
+}
+
+.tetris-logo-loader .tetris-block {
+    border-radius: 2px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    animation: fallTetrisLoader 2s ease-in-out infinite;
+    transform-origin: center;
+}
+
+/* Block Sizes - Loader */
+.tetris-logo-loader .size-1 {
+    width: 15px;
+    height: 15px;
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.tetris-logo-loader .size-2 {
+    width: 15px;
+    height: 15px;
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.tetris-logo-loader .size-4-v {
+    width: 32px;
+    height: 32px;
+    grid-column: 1 / 3;
+    grid-row: 2 / 4;
+}
+
+.tetris-logo-loader .size-2-tall {
+    width: 25px;
+    height: 15px;
+    grid-column: 3;
+    grid-row: 3;
+}
+
+.tetris-logo-loader .size-3-tall {
+    width: 25px;
+    height: 30px;
+    grid-column: 3;
+    grid-row: 1 / 3;
+}
+
+/* Loader Animation - Continuous Loop */
+@keyframes fallTetrisLoader {
+    0% {
+        transform: translateY(-100px) rotateZ(0deg) scale(0.8);
+        opacity: 0;
+    }
+    30% {
+        transform: translateY(0) rotateZ(0deg) scale(1);
+        opacity: 1;
+    }
+    70% {
+        transform: translateY(0) rotateZ(0deg) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-100px) rotateZ(0deg) scale(0.8);
+        opacity: 0;
+    }
+}
+
+/* Animation Delays - Loader */
+.tetris-logo-loader .size-1 { animation-delay: 0s; }
+.tetris-logo-loader .size-2 { animation-delay: 0.15s; }
+.tetris-logo-loader .size-4-v { animation-delay: 0.3s; }
+.tetris-logo-loader .size-3-tall { animation-delay: 0.45s; }
+.tetris-logo-loader .size-2-tall { animation-delay: 0.6s; }

@@ -1,0 +1,110 @@
+<?php
+session_start();
+
+$titulo = 'Pago de Comisiones';
+include '../dependencies/header.php';
+?>
+
+<div class="card">
+  <div class="card-body">
+    <h5 class="fw-bold py-0 mb-3"><span class="text-muted fw-light">Reportes / Reportes de Ventas / </span> Pago de Comisiones</h5>
+    <div class="nav-align-top ">
+      <ul class="nav nav-tabs" role="tablist" id="tabs">
+        <li class="nav-item">
+          <button type="button" class="nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#navs-busqueda" aria-controls="navs-busqueda" aria-selected="true">
+            <i class="fa-solid fa-file-circle-plus"></i> &nbsp;Filtros de búsqueda
+          </button>
+        </li>
+      </ul>
+      <div class="tab-content">
+        <div class="tab-pane fade show active" id="navs-busqueda" role="tabpanel">
+
+          <!-- Filtros -->
+          <div class="row">
+            <div class="col-md-2">
+              <div class="mb-3">
+                <label class="form-label" for="fe_fecha_inicial">Fecha inicial</label>
+                <div class="input-group input-group-merge">
+                  <span class="input-group-text"><i class="fa-regular fa-calendar-check"></i></span>
+                  <input type="date" class="form-control form-control-sm" id="fe_fecha_inicial" aria-describedby="fe_fecha_inicial">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="mb-3">
+                <label class="form-label" for="fe_fecha_final">Fecha final</label>
+                <div class="input-group input-group-merge">
+                  <span class="input-group-text"><i class="fa-regular fa-calendar-check"></i></span>
+                  <input type="date" class="form-control form-control-sm" id="fe_fecha_final" aria-describedby="fe_fecha_final">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label class="form-label">Bodegas</label>
+                <select id="id_bodegas" class="form-select form-select-sm" data-placeholder="Seleccione bodegas...">
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label class="form-label" for="id_usuario_filtro">Usuario</label>
+                <select class="form-select form-select-sm" id="id_usuario_filtro"></select>
+              </div>
+            </div>
+          </div>
+          <div class="row align-items-end">
+            <div class="col-md-8">
+            </div>
+
+            <div class="col-md-4">
+              <div class="d-flex justify-content-end align-items-center gap-2 mb-3">
+
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  id="btn-limpiar">
+                  <i class="fa-solid fa-eraser me-1"></i>
+                  Limpiar
+                </button>
+
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-primary"
+                  id="btn-exportar"
+                  style="display: none;">
+                  <i class="fa-solid fa-file-excel me-1"></i>
+                  Exportar
+                </button>
+
+                <button
+                  type="button"
+                  class="btn btn-sm btn-primary"
+                  id="btn-busqueda">
+                  <i class="fa fa-search me-1"></i>
+                  Consultar
+                </button>
+
+              </div>
+            </div>
+          </div>
+          <!-- Resumen -->
+          <div id="resumen-comisiones" class="table-responsive row mt-4"></div>
+
+          <!-- Tabla de resultados -->
+          <div id="resultado-comisiones" class="table-responsive mt-3"></div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<?php
+
+$scriptsPagina = [
+  '../controllers/rptComisiones.js?' . rand()
+];
+
+include '../dependencies/footer.php';
+
+?>

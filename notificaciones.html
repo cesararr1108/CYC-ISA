@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Notificaciones Push</title>
+    <link rel="manifest" href="/development/manifest.json">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="CYC Notificaciones">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <link rel="apple-touch-icon" href="/development/assets/img/logo-mini-pwa.png">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <style>
+        .toast-push-custom {
+            border-radius: 12px !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
+            cursor: pointer;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <button id="btn-notificaciones">
+        Activar notificaciones
+    </button>
+
+    <h2 id="ind1"></h2>
+
+    <h3 id="ind2"></h3>
+
+    <h1 id="token"></h1>
+
+
+    <script type="module">
+
+        import {
+            initializeApp
+        } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+
+        import {
+            getMessaging,
+            getToken
+        } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging.js";
+
+
+        const firebaseConfig = {
+
+            apiKey: "AIzaSyATCXBm38Vm0rWPTL4lK3oPV0Jfa8vektE",
+
+            authDomain:
+                "cyc-notifications-push.firebaseapp.com",
+
+            projectId:
+                "cyc-notifications-push",
+
+            storageBucket:
+                "cyc-notifications-push.firebasestorage.app",
+
+            messagingSenderId:
+                "943820201444",
+
+            appId:
+                "1:943820201444:web:171e3531c7b861bfa7fbf1",
+
+            measurementId:
+                "G-BLP2M3DP5W"
+        };
+
+
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+
+        const messaging = getMessaging(app);
+
+
+        // ============================================
+        // ACTIVAR NOTIFICACIONES
+        // ============================================
+
+        $('#btn-notificaciones').on('click', async function () {
+
+            try {
+
+                $('#ind1').html(
+                    'Solicitando permiso...'
+                );
+
+
+                // ========================================
+                // VERIFICAR SOPORTE
+                // ========================================
+
+                if (!('Notification' in window)) {
+
+                    $('#ind1').html(
+                        'Este navegador no soporta notificaciones Web'
+                    );
+
+                    return;
+                }
+
+
+                if (!('serviceWorker' in navigator)) {
+
+                    $('#ind1').html(
+                        'Este navegador no soporta Service Worker'
+                    );
+
+                    return;
+                }
+
+
+                // ========================================
+                // SOLICITAR PERMISO
+                // ========================================
+
+                const permission =
+                    await Notification.requestPermission();
+
+
+                console.log(
+                    'Permiso:',
+                    permission
+                );
+
+
+                if (permission !== 'granted') {
+
+                    $('#ind1').html(
+                        'Permiso de notificaciones rechazado'
+                    );
+
+                    return;
+                }
+
+
+                $('#ind1').html(
+                    'Permiso concedido'
+                );
+
+
+                // ========================================
+                // REGISTRAR SERVICE WORKER
+                // ========================================
+
+                const registration =
+                    await navigator.serviceWorker.register(
+                        'firebase-messaging-sw.js'
+                    );
+
+
+                console.log(
+                    'Service Worker:',
+                    registration
+                );
+
+
+                $('#ind1').html(
+                    'Service Worker registrado'
+                );
+
+
+                // ========================================
+                // ESPERAR SERVICE WORKER
+                // ========================================
+
+                await navigator.serviceWorker.ready;
+
+
+                // ========================================
+                // OBTENER TOKEN FCM
+                // ========================================
+
+                $('#ind2').html(
+                    'Generando token...'
+                );
+
+
+                const currentToken =
+                    await getToken(
+                        messaging,
+                        {
+
+                            vapidKey:
+                                'BMkxZL77tHSmA4F5cheCQdqkMy2UBMpFTD1y4Lja7ZY5BFSySxIcTs7K1IZTlBtC1E8fFxY7ekEMDgTHPARx8RU',
+
+                            serviceWorkerRegistration:
+                                registration
+
+                        }
+                    );
+
+
+                // ========================================
+                // VALIDAR TOKEN
+                // ========================================
+
+                if (currentToken) {
+
+                    console.log(
+                        'Token de registro:',
+                        currentToken
+                    );
+
+
+                    $('#ind2').html(
+                        'Token generado correctamente'
+                    );
+
+
+                    $('#token').html(
+                        currentToken
+                    );
+
+
+                } else {
+
+                    $('#ind2').html(
+                        'No se pudo generar el token'
+                    );
+
+                }
+
+
+            } catch (error) {
+
+                console.error(
+                    'Error completo:',
+                    error
+                );
+
+
+                $('#ind2').html(
+                    'Error al generar token: ' +
+                    error.message
+                );
+
+            }
+
+        });
+
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factura de venta</title>
+<style>
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 11px;
+}
+table {
+  width: 300px;
+}
+td {
+  word-break: break-all;
+}
+.titulos{
+    font-size: small;
+    font-weight: 600;
+    text-align: start;
+}
+.sub-titulos{
+    text-align: start;
+     font-size: small;
+}
+.top-titulos{
+    font-size: small;
+}
+</style>
+<script src="../../assets/vendor/libs/jquery/jquery.js"></script> 
+<script src="../../assets/vendor/libs/popper/popper.js"></script> 
+<script src="../../assets/vendor/js/bootstrap.js"></script> 
+<script src="../shared/shared.js"></script> 
+<script src="../shared/servicios.js"></script>
+<script src="../../libs/barcode/qrcode.min.js"></script>
+<script>
+   
+   const dataFactura =async (id)=>{
+
+    const resp =await enviarPeticion({
+        link:'../shared/servicios/servicios.php',
+        op:'datos-facturas',
+        id
+    });
+
+    if(resp.length==0){
+        return;
+    } 
+
+     const encabezado = resp.encabezado;
+
+     const detalle =resp.detalle;
+
+     dataEnc = encabezado.empresa[0];
+     dataCli = encabezado.tercero[0];
+     const pagos = resp.pagos;
+
+
+     $("#nitEmp").html(dataEnc.nit+'-'+dataEnc.nit_digito);
+     $("#razonComercialEmp").html(dataEnc.razon_comercial);
+     $("#regimenEmp").html('Regimen '+dataEnc.regimen);
+     $("#municipioEmp").html(dataEnc.nombre_mpio)
+     $("#ciudadEmp").html(dataEnc.nombre_dpto)
+     $("#telefonosEmp").html(dataEnc.telefono)
+     $("#emailEmp").html(dataEnc.correo)
+     //cliente
+     $("#documento").html(dataCli.tipo+'-'+dataCli.numero);
+
+     if(confGeneral.ManejaFe =='S'){
+        $("#tr-maneja-fe-data").html(`
+
+        `)
+
+        $("#cufe").html(dataCli.cufe);
+        $("#fecha_emision").html(dataCli.fecha_envio)
+
+        $("#maneja-fe-qr").html(`
+            <td colspan="2"  align="center">
+                  <div id="qrcode" style="margin:auto 0 "></div>
+             </td>
+       
+         ` )
+        
+       new QRCode(document.getElementById("qrcode"), {
+        text: dataCli.QRCode,
+        width: 200,
+        height: 200,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+       });
+     }
+     
+     
+     $("#nitCli").html(dataCli.nit)
+     $("#nombresCli").html(dataCli.nombres==''?dataCli.razon_comercial :dataCli.nombres );
+     $("#dirCliente").html(dataCli.direccion+' '+dataCli.nombre_dpto+' '+dataCli.nombre_mpio);
+     $("#vendedor").html(dataCli.vendedor);
+     $("#fecha_documento").html(dataCli.fecha_hora);
+     $("#leyenda1").html(dataCli.leyenda1);
+     $("#leyenda2").html(dataCli.leyenda2);
+
+     tbdet = `
+        <table class="" id="detalle" cellpadding="0">
+            <thead>
+                <tr>
+                  <th width="10%">Cod</th>
+                  <th width="45%">Detalle</th>
+                  <th width="15%">Precio</th>
+                  <th width="10%">Iva</th>
+                  <th width="10%">Cant</th>
+                  <th width="15%">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+     `
+     if(detalle.length>0){
+
+        detalle.forEach(element => {
+            textDesc= element.pcj_descuento>0?'Desc '+eleme.pcj_descuento:''
+            tbdet+=`<tr>
+                        <td>${element.codigo}</td>
+                        <td style="font-size:9px">${element.producto}<br> ${textDesc}</td>
+                        <td align="rigth">${element.precio}</td>
+                        <td align="center">${element.pcj_iva}</td>
+                        <td>${element.cantidad}</td>
+                        <td>${element.total}</td>
+                    </tr>`
+        });
+
+     }
+     tbdet+=` </tbody>
+     </table> `
+     $("#detalle-item").html(tbdet)
+
+     if(pagos.length>0){
+        let tabla = `
+                <table class="table">
+                <thead> 
+                    <tr>
+                        <th>Medio de pago</th>
+                        <th>Valor</th>
+                    </tr>
+                <thead> 
+            <tbody>
+        ` 
+
+        pagos.forEach(pago=>{
+             tabla+=`<tr>
+                    <td>${pago.medio}</td>
+                    <td style="text-align:right">${ formatNum( pago.valor ,'$')}</td>
+                </tr>`
+        });
+        tabla+=`</tbody>
+            </table>
+        `
+       $("#detalle-pago").html(tabla)
+     } 
+    
+   }
+ let confGeneral =null; 
+$(async function(){
+ 
+  if(leerElemento('confSys')){
+
+    dataStorage = await leerElemento('confSys');
+
+    confGeneral = dataStorage.confGeneral[0];
+  }
+
+const params = new URLSearchParams(window.location.search);
+
+// Obtener valores específicos
+const id = params.get('id'); // "Juan"
+
+ if( isNaN( parseInt(id) )){
+    alert("Error al generar el ticket")
+    window.close();
+    return;
+ }
+
+ await dataFactura(id);
+ window.print();
+})
+</script>
+</head>
+<body>
+    <table stye="width:100%" align="center" border="0"  cellpadding="0" cellspacing="0" >
+        <thead>
+
+            <tr>
+                <th colspan="2" ><img src="../../assets/img/logo/logo.png" width="120" height="90" ></th>
+            </tr>
+            <tr>
+                <th  colspan="2" id="nitEmp" class="top-titulos"></th>
+            </tr>
+            <tr>
+                <th  colspan="2" id="razonComercialEmp"  class="top-titulos"></th>
+            </tr>
+            <tr>
+                <th  colspan="2" id="regimenEmp"  class="top-titulos"></th>
+            </tr>
+            <tr>
+                <th  colspan="2" id="direccionEmp"  class="top-titulos"></th>
+            </tr>
+            <tr>
+                <th  colspan="2" id="municipioEmp"  class="top-titulos"></th>
+            </tr>
+            <tr>
+                <th  colspan="2" id="ciudadEmp"  class="top-titulos"></th>
+            </tr>
+            <tr>
+                <th  colspan="2" id="telefonosEmp"  class="top-titulos"></th>
+            </tr>
+            <tr>
+                <th  colspan="2" id="emailEmp"  class="top-titulos"></th>
+            </tr>
+            <tr>
+                <th  colspan="2"  >FACTURA ELECTRONICA POS</th>
+            </tr>
+            <tr>
+                <td></td>
+            </tr>
+            <tr>
+                <td  class="titulos">Documento</td>
+                <td  id="documento" align="center" class="sub-titulos"></td>
+            </tr>
+            <tr id="tr-maneja-fe-data">
+                <td style="width:100px"  class="titulos">Cufe</td>
+                <td id="cufe"  class="sub-titulos"></td>
+            </tr>
+            <tr>
+                <td style="width:100px"  class="titulos">Fecha emision</td>
+                <td id="fecha_emision" style="width:200px;" class="sub-titulos"></td>
+            </tr>
+            <tr><th  style="width:100px" colspan="2"><hr></th></tr>
+            <tr><td colspan="2" style="width:200px; text-align: center;"  class="titulos">DATOS DEL CLIENTE</td></tr>
+            <tr>
+                <td style="width:100px"  class="titulos">Nit</td>
+                <td id="nitCli" style="width:200px" class="sub-titulos"></td>
+            </tr>
+            <tr>
+                <td style="width:100px"  class="titulos">Nombres</td>
+                <td id="nombresCli" style="width:200px" class="sub-titulos"></td>
+            </tr>
+            <tr>
+                <td  class="titulos">Dirección</td>
+                <td id="dirCliente" class="sub-titulos"></td>
+            </t>
+            <tr>
+                <td  class="titulos">Teléfono</td>
+                <td id="telefonoCli" class="sub-titulos"></td>
+            </tr>
+            <tr><td colspan="2"><hr></td></tr>
+            <tr>
+                <td  class="titulos">Vendedor</th>
+                <td id="vendedor" class="sub-titulos"></td>
+            </tr>
+            <tr>
+                <td  class="titulos">Fecha doc.</td>
+                <td id="fecha_documento" class="sub-titulos"></td>
+            </tr>
+            <tr>
+                <td colspan="2"><hr></td>
+            </tr>
+            <tr>
+                <td id="detalle-item"  colspan="2"></td>
+            </tr>
+            <tr>
+                <td  colspan="2">------------------------------------------------------------</td>
+            </tr>
+            <tr><td colspan="2" >DETALLE DE PAGO</td></tr>
+            <tr><td  colspan="2" id="detalle-pago" style="margin-bottom: 10px;"></td></tr>
+            <tr><td id="qr" colspan="2"></td></tr>
+            <tr><td   colspan="2">----------------------------------------------------------</td></tr>
+            <tr>
+                <td id="leyenda1"  colspan="2"></td>
+            </tr>
+            <tr>
+                <td  colspan="2" id="leyenda2"></td>
+            </tr>
+
+            <tr>
+                <td  colspan="2" id="pie-pagina"></td>
+            </tr>
+            <tr>
+                <td  colspan="2" id="fecha_imprecion"></td>
+            </tr>
+            <tr id="menaje-fe-qr">
+
+            </tr>
+            <tr><td colspan="2"></td></tr>
+            <tr>
+                <td colspan="2" align="center">
+                   <p stylw="margin-top:10px"> Gracias por su compra</p>
+                </td>
+            </tr>
+        </thead>
+    </table>
+</body>
+
+</html>
