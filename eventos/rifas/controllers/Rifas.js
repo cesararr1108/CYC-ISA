@@ -49,13 +49,13 @@ function EvPost(data, ok){
 		cache: false
 	}).done(function(r){
 		if(!r || r.ok === false){
-			swal('Atención', (r && r.msg) ? r.msg : 'No fue posible procesar la solicitud', 'warning');
+			EvAviso('warning', 'Atención:', (r && r.msg) ? r.msg : 'No fue posible procesar la solicitud');
 			return;
 		}
 		ok(r);
 	}).fail(function(xhr){
 		console.log(xhr.responseText);
-		swal('Error', 'No fue posible comunicarse con el servidor', 'error');
+		EvAviso('error', 'Error:', 'No fue posible comunicarse con el servidor o la respuesta no es válida');
 	});
 }
 
@@ -69,8 +69,31 @@ function EvConfirmar(titulo, texto, fn){
 		cancelButtonText: 'Cancelar',
 		closeOnConfirm: true
 	}, function(isConfirm){
-		if(isConfirm){ setTimeout(fn, 300); }
+		// Algunas versiones de SweetAlert llaman el callback sin argumento al confirmar
+		if(isConfirm === false){ return; }
+		setTimeout(fn, 400);
 	});
+}
+
+// Mensaje visible en pantalla (no depende de SweetAlert) + alerta emergente
+function EvAviso(tipo, titulo, texto){
+	var clase = tipo == 'success' ? 'alert-success' : (tipo == 'error' ? 'alert-danger' : 'alert-warning');
+	$('#evMensaje').html(
+		'<div class="alert ' + clase + ' alert-dismissible" style="font-size:18px;">' +
+		  '<button type="button" class="close" data-dismiss="alert">&times;</button>' +
+		  '<b>' + Esc(titulo) + '</b> ' + Esc(texto) +
+		'</div>');
+	setTimeout(function(){ swal(titulo, texto, tipo); }, 400);
+}
+
+// Deja la consulta lista para el siguiente cliente
+function LimpiarCliente(){
+	EV_DATOS = null;
+	$('#evResultado').hide();
+	$('#SpClienteRifas').html('');
+	$('#ResultadosRifas').html('');
+	$('#btnElectro, #btnMayores').hide().prop('disabled', false);
+	$('#TxtPassportRifas').val('').focus();
 }
 
 function Moneda(n){
@@ -125,6 +148,7 @@ function ConsultarCliente(){
 		return;
 	}
 	$('#btnConsultar').prop('disabled', true);
+	$('#evMensaje').html('');
 	EvPost({ op: 'EV_CONSULTA', Pass: pass }, function(r){
 		EV_DATOS = r;
 		PintarCliente(r);
@@ -233,8 +257,10 @@ function PintarDetalleLabs(r){
 	var html = '', ok = '<span class="fa fa-check text-success"></span>', no = '<span class="fa fa-times text-danger"></span>';
 	$.each(r.labs, function(i, l){
 		var c = parseFloat(l.compra) || 0;
-		html += '<tr class="' + (c <= 0 ? 'text-muted' : '') + '">' +
+		var fila = c >= r.mayores.min1 ? 'success' : (c <= 0 ? 'text-muted' : '');
+		html += '<tr class="' + fila + '">' +
 		          '<td>' + (i + 1) + '</td>' +
+		          '<td>' + Esc(l.nit) + '</td>' +
 		          '<td>' + Esc(l.nombres) + '</td>' +
 		          '<td class="text-right">' + Moneda(c) + '</td>' +
 		          '<td class="text-center">' + (c >= r.mayores.min1 ? ok : no) + '</td>' +
@@ -249,7 +275,7 @@ function VerLabsSinCompra(){
 	var html = '<ul class="list-group">';
 	$.each(EV_DATOS.labs, function(i, l){
 		if((parseFloat(l.compra) || 0) <= 0){
-			html += '<li class="list-group-item">' + Esc(l.nombres) + '</li>';
+			html += '<li class="list-group-item"><b>' + Esc(l.nit) + '</b> - ' + Esc(l.nombres) + '</li>';
 		}
 	});
 	html += '</ul>';
@@ -260,23 +286,30 @@ function VerLabsSinCompra(){
 function RegistrarElectro(){
 	if(!EV_DATOS){ return; }
 	var c = EV_DATOS.cliente;
-	EvConfirmar('¿Entregar electromenor?', 'Cliente: ' + c.codigo_sap + ' - ' + (c.razon_comercial || c.nombres), function(){
+	var nombre = c.codigo_sap + ' - ' + (c.razon_comercial || c.nombres);
+	EvConfirmar('¿Entregar electromenor?', 'Cliente: ' + nombre, function(){
+		$('#btnElectro').prop('disabled', true);
 		EvPost({ op: 'EV_ELECTRO_REGISTRAR', Pass: c.codigo_sap }, function(r){
-			swal('¡Registrado!', 'Electromenor entregado. Van ' + r.entregados + ' de ' + r.stock, 'success');
-			ConsultarClienteActual();
+			LimpiarCliente();
+			EvAviso('success', '¡ELECTROMENOR REDIMIDO!', nombre + '. Entregados ' + r.entregados + ' de ' + r.stock +
+			        ' (quedan ' + Math.max(0, r.stock - r.entregados) + ').');
 			CargarElectro();
 		});
+		setTimeout(function(){ $('#btnElectro').prop('disabled', false); }, 2000);
 	});
 }
 
 function RegistrarMayores(){
 	if(!EV_DATOS){ return; }
 	var c = EV_DATOS.cliente;
-	EvConfirmar('¿Generar boleta premios mayores?', 'Cliente: ' + c.codigo_sap + ' - ' + (c.razon_comercial || c.nombres), function(){
+	var nombre = c.codigo_sap + ' - ' + (c.razon_comercial || c.nombres);
+	EvConfirmar('¿Generar boleta premios mayores?', 'Cliente: ' + nombre, function(){
+		$('#btnMayores').prop('disabled', true);
 		EvPost({ op: 'EV_MAYORES_REGISTRAR', Pass: c.codigo_sap }, function(r){
-			swal('¡Boleta generada!', r.msg, 'success');
-			ConsultarClienteActual();
+			LimpiarCliente();
+			EvAviso('success', '¡BOLETA GENERADA!', nombre + '. ' + r.msg + '.');
 		});
+		setTimeout(function(){ $('#btnMayores').prop('disabled', false); }, 2000);
 	});
 }
 

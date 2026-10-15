@@ -36,6 +36,7 @@
 	.ev-ganador{ font-size: 22px; text-align: center; padding: 15px; }
 	.table td, .table th{ vertical-align: middle !important; }
 	.nav-tabs > li > a{ font-weight: bold; }
+	#ResultadosRifas tr.success > td{ background-color: #dff0d8 !important; color: #2b542c; font-weight: bold; }
 </style>
 </head>
 <body oncontextmenu="return false;">
@@ -110,6 +111,8 @@
         </div>
       </div>
 
+      <div id="evMensaje" style="margin-top:15px;"></div>
+
       <div id="evResultado" style="display:none; margin-top:15px;">
         <div class="row">
           <div class="col-md-3 col-sm-6">
@@ -173,6 +176,7 @@
             <thead>
               <tr class="info">
                 <th>#</th>
+                <th>NIT</th>
                 <th>LABORATORIO</th>
                 <th class="text-right">COMPRA</th>
                 <th class="text-center">&ge; $50.000</th>
