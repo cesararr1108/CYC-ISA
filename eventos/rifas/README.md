@@ -24,8 +24,7 @@ Todas las validaciones se repiten en el servidor al registrar (no se confía en 
 
 ## Configuración (`models/Rifas.php`)
 
-- `EV_TABLA_PEDIDOS`: `V_PEDIDOS_DIAS_TOTAL` (igual que el `case 2`). Debe exponer `CODIGO`, `VALOR_TOTAL`, `PASSPORT` y `FECHA_HORA`.
-  Si el evento sólo usa `T_PEDIDOS`, cambiar aquí.
+- `EV_TABLA_PEDIDOS`: `T_PEDIDOS` (columnas `CODIGO`, `VALOR_TOTAL`, `PASSPORT` y `FECHA_HORA`).
 - `EV_FECHA`: `20261016`.
 - `EV_ELECTRO_STOCK`, montos, número de labs y horas de los sorteos (`evSorteos()`).
 - `EV_SORTEO_EXCLUIR_GANADORES`: `true` = quien ya ganó un sorteo de la tarde no vuelve a participar en los siguientes.

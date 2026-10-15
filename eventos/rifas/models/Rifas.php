@@ -7,7 +7,7 @@
     CONFIGURACION EVENTO VIERNES 16 DE OCTUBRE
     ===================================================================== */
  // Tabla/vista con TODOS los pedidos del evento (CODIGO, VALOR_TOTAL, PASSPORT, FECHA_HORA)
- define('EV_TABLA_PEDIDOS', 'V_PEDIDOS_DIAS_TOTAL');
+ define('EV_TABLA_PEDIDOS', 'T_PEDIDOS');
  define('EV_FECHA', '20261016');                 // AAAAMMDD
 
  // Dinámica electromenores
@@ -352,7 +352,7 @@
 				 END AS tipo,
 				compras = ISNULL((SELECT
 									   SUM(P.VALOR_TOTAL)
-									 FROM V_PEDIDOS_DIAS_TOTAL P
+									 FROM T_PEDIDOS P
 									 INNER JOIN T_MATERIALES M ON P.CODIGO = M.CODIGO_MATERIAL
 									 INNER JOIN T_TERCEROS   T ON T.CODIGO_SAP = M.CODIGO_SAP
 									 WHERE
@@ -419,7 +419,7 @@
 		 $sql="SELECT
 					V.PASSPORT,
 					SUM(v.VALOR_TOTAL)
-					FROM V_PEDIDOS_DIAS_TOTAL V
+					FROM T_PEDIDOS V
 					INNER JOIN T_MATERIALES M ON 	 M.CODIGO_MATERIAL	=V.CODIGO
 					INNER JOIN T_TERCEROS   T ON	 T.CODIGO_SAP		=M.CODIGO_SAP
 					INNER JOIN T_RIFAS  	R ON	 T.NIT LIKE '%'+R.NIT+'%'
