@@ -18,6 +18,7 @@ Módulo PHP 5.4 + MSSQL (`mssql_*`) con la misma estructura del proyecto de even
    y guarda en `T_RIFA_SORTEOS_GANADORES`. Un ganador que no reclama se puede **anular** y volver a sortear.
 3. **Premios mayores**: 1 sola boleta por cliente en `T_USUARIOS.BOLETAS1 = 1`. Se valida primero la Dinámica #1 (≥ $50.000 en 20 labs)
    y si no cumple la #2 (≥ $1.000.000 en 8 labs). El cliente debe estar registrado en `T_USUARIOS`.
+   Al generarla se imprime con `../resources/pdf/pdf_boleta.php?pass=X&cant=1` (mismo PDF de `PDF_Boletas()`); se puede reimprimir.
    Existe además *Generar boletas pendientes* para hacerlo masivo antes del sorteo final.
 
 Todas las validaciones se repiten en el servidor al registrar (no se confía en lo que muestra la pantalla) y la hora se toma de `GETDATE()` del SQL Server.

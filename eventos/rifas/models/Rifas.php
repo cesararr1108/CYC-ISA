@@ -1,4 +1,5 @@
 <?php
+ ob_start();
  require_once 'funciones.php';
  session_start();
  conectar();
@@ -40,6 +41,8 @@
     FUNCIONES DEL EVENTO
     ===================================================================== */
  function evJson($data){
+	 // Descarta avisos/notice de PHP que dañarían el JSON
+	 while(ob_get_level() > 0){ ob_end_clean(); }
 	 header('Content-Type: application/json; charset=utf-8');
 	 echo json_encode($data);
 	 exit;
@@ -83,6 +86,18 @@
 		 mssql_free_result($q);
 	 }
 	 return $rows;
+ }
+
+ // Ejecuta una sentencia sin resultado (INSERT/UPDATE)
+ function evExec($sql){
+	 $q = mssql_query($sql);
+	 if($q === false){
+		 evError();
+	 }
+	 if(is_resource($q)){
+		 mssql_free_result($q);
+	 }
+	 return true;
  }
 
  function evPass(){
@@ -466,27 +481,29 @@
 			 evError('El cliente tiene '.$e['labs_cumple'].' de '.EV_ELECTRO_N_LABS.' laboratorios con compras mínimas de $'.number_format(EV_ELECTRO_MIN_LAB, 0, ',', '.'));
 		 }
 		 $p = evEsc($pass);
-		 $r = evRows("SET NOCOUNT ON;
-			SET XACT_ABORT ON;
-			DECLARE @r int, @n int;
-			BEGIN TRAN;
-			SELECT @n = COUNT(*) FROM T_RIFA_ELECTROMENORES WITH (UPDLOCK, HOLDLOCK);
-			IF EXISTS (SELECT 1 FROM T_RIFA_ELECTROMENORES WHERE PASSPORT = '".$p."')
-				SET @r = -1;
-			ELSE IF @n >= ".EV_ELECTRO_STOCK."
-				SET @r = -2;
-			ELSE
-			BEGIN
-				INSERT INTO T_RIFA_ELECTROMENORES (PASSPORT, NOMBRES, N_LABS, COMPRA, USUARIO)
-				SELECT '".$p."', LEFT(".evSqlNombre("'".$p."'").", 120), ".(int)$e['labs_cumple'].", ".evNum($ev['compra_labs']).", '".evUsuario()."';
-				SET @r = 1;
-				SET @n = @n + 1;
-			END
-			COMMIT TRAN;
-			SELECT resultado = @r, entregados = @n;");
-		 $res = (int)$r[0]['resultado'];
-		 if($res == -1){ evError('El cliente ya reclamó su electromenor'); }
-		 if($res == -2){ evError('Ya se entregaron los '.EV_ELECTRO_STOCK.' electromenores disponibles'); }
+		 $p = evEsc($pass);
+		 // Una sola sentencia: inserta sólo si el cliente no ha reclamado y queda stock
+		 evExec("INSERT INTO T_RIFA_ELECTROMENORES (PASSPORT, NOMBRES, N_LABS, COMPRA, USUARIO)
+				SELECT
+					'".$p."',
+					LEFT(".evSqlNombre("'".$p."'").", 120),
+					".(int)$e['labs_cumple'].",
+					".evNum($ev['compra_labs']).",
+					'".evUsuario()."'
+				WHERE
+					NOT EXISTS (SELECT 1 FROM T_RIFA_ELECTROMENORES WITH (UPDLOCK, HOLDLOCK) WHERE PASSPORT = '".$p."') AND
+					(SELECT COUNT(*) FROM T_RIFA_ELECTROMENORES WITH (UPDLOCK, HOLDLOCK)) < ".EV_ELECTRO_STOCK);
+		 // Verificar que quedó grabado
+		 $r = evRows("SELECT
+						entregados = COUNT(*),
+						propio     = SUM(CASE WHEN PASSPORT = '".$p."' THEN 1 ELSE 0 END)
+					FROM T_RIFA_ELECTROMENORES");
+		 if((int)$r[0]['propio'] == 0){
+			 if((int)$r[0]['entregados'] >= EV_ELECTRO_STOCK){
+				 evError('Ya se entregaron los '.EV_ELECTRO_STOCK.' electromenores disponibles');
+			 }
+			 evError('No se pudo registrar el electromenor: '.evUtf8(mssql_get_last_message()));
+		 }
 		 evJson(array(
 			 'ok'         => true,
 			 'msg'        => 'Electromenor registrado',
@@ -524,33 +541,24 @@
 			 evError('El cliente no cumple ninguna dinámica: '.$m['labs_50'].'/'.EV_MAYOR1_N_LABS.' labs con $50.000 y '.$m['labs_1m'].'/'.EV_MAYOR2_N_LABS.' labs con $1.000.000');
 		 }
 		 $p = evEsc($pass);
-		 $r = evRows("SET NOCOUNT ON;
-			SET XACT_ABORT ON;
-			DECLARE @r int, @id int;
-			BEGIN TRAN;
-			SELECT @id = MIN(ID) FROM T_USUARIOS WITH (UPDLOCK, HOLDLOCK) WHERE CODIGO_SAP = '".$p."';
-			IF @id IS NULL
-				SET @r = -3;
-			ELSE IF EXISTS (SELECT 1 FROM T_USUARIOS WHERE CODIGO_SAP = '".$p."' AND ISNULL(BOLETAS1, 0) > 0)
-				SET @r = -1;
-			ELSE
-			BEGIN
-				UPDATE T_USUARIOS SET BOLETAS1 = 1 WHERE ID = @id;
-				SET @r = 1;
-			END
-			COMMIT TRAN;
-			SELECT resultado = @r;");
-		 $res = (int)$r[0]['resultado'];
-		 if($res == -1){ evError('El cliente ya tiene su boleta para los premios mayores'); }
-		 if($res == -3){ evError('El cliente no está registrado en el evento (T_USUARIOS)'); }
-		 evJson(array('ok' => true, 'msg' => 'Boleta generada por la Dinámica #'.$m['dinamica'], 'dinamica' => $m['dinamica']));
+		 // Una sola boleta por cliente: se marca la primera fila del cliente en T_USUARIOS
+		 evExec("UPDATE T_USUARIOS SET BOLETAS1 = 1
+				WHERE
+					ID = (SELECT MIN(ID) FROM T_USUARIOS WHERE CODIGO_SAP = '".$p."') AND
+					NOT EXISTS (SELECT 1 FROM T_USUARIOS X WITH (UPDLOCK, HOLDLOCK)
+					            WHERE X.CODIGO_SAP = '".$p."' AND ISNULL(X.BOLETAS1, 0) > 0)");
+		 // Verificar que quedó grabado
+		 $r = evRows("SELECT boletas1 = ISNULL(MAX(ISNULL(BOLETAS1, 0)), 0) FROM T_USUARIOS WHERE CODIGO_SAP = '".$p."'");
+		 if((int)$r[0]['boletas1'] <= 0){
+			 evError('No se pudo actualizar BOLETAS1 en T_USUARIOS: '.evUtf8(mssql_get_last_message()));
+		 }
+		 evJson(array('ok' => true, 'msg' => 'Boleta generada por la Dinámica #'.$m['dinamica'], 'dinamica' => $m['dinamica'], 'pass' => $pass));
 	break;
 
 	// Genera la boleta a todos los clientes registrados que cumplan y aún no la tengan
 	case "EV_MAYORES_MASIVO":
-		 $r = evRows("SET NOCOUNT ON;
-			DECLARE @n int;
-			".evSqlLabs("1 = 1").", E AS (
+		 $antes = evRows("SELECT n = COUNT(DISTINCT CODIGO_SAP) FROM T_USUARIOS WHERE ISNULL(BOLETAS1, 0) > 0");
+		 evExec(evSqlLabs("1 = 1").", E AS (
 				SELECT
 					PASSPORT,
 					L50 = SUM(CASE WHEN COMPRA >= ".evNum(EV_MAYOR1_MIN_LAB)." THEN 1 ELSE 0 END),
@@ -558,21 +566,15 @@
 				FROM C
 				GROUP BY PASSPORT
 			)
-			SELECT PASSPORT INTO #EV_CUMPLEN
-			FROM E
-			WHERE L50 >= ".EV_MAYOR1_N_LABS." OR L1M >= ".EV_MAYOR2_N_LABS.";
-
 			UPDATE U SET BOLETAS1 = 1
 			FROM T_USUARIOS U
-			INNER JOIN #EV_CUMPLEN X ON X.PASSPORT = U.CODIGO_SAP
+			INNER JOIN E ON E.PASSPORT = U.CODIGO_SAP
 			WHERE
+				(E.L50 >= ".EV_MAYOR1_N_LABS." OR E.L1M >= ".EV_MAYOR2_N_LABS.") AND
 				U.ID = (SELECT MIN(Y.ID) FROM T_USUARIOS Y WHERE Y.CODIGO_SAP = U.CODIGO_SAP) AND
-				NOT EXISTS (SELECT 1 FROM T_USUARIOS Z WHERE Z.CODIGO_SAP = U.CODIGO_SAP AND ISNULL(Z.BOLETAS1, 0) > 0);
-			SET @n = @@ROWCOUNT;
-
-			DROP TABLE #EV_CUMPLEN;
-			SELECT generadas = @n;");
-		 evJson(array('ok' => true, 'generadas' => (int)$r[0]['generadas']));
+				NOT EXISTS (SELECT 1 FROM T_USUARIOS Z WHERE Z.CODIGO_SAP = U.CODIGO_SAP AND ISNULL(Z.BOLETAS1, 0) > 0)");
+		 $despues = evRows("SELECT n = COUNT(DISTINCT CODIGO_SAP) FROM T_USUARIOS WHERE ISNULL(BOLETAS1, 0) > 0");
+		 evJson(array('ok' => true, 'generadas' => (int)$despues[0]['n'] - (int)$antes[0]['n']));
 	break;
 
 	case "EV_MAYORES_LISTA":
@@ -619,29 +621,26 @@
 			 evError('El sorteo de las '.$hora.' aún no se puede realizar (corte: '.evCorteIso($hora).')');
 		 }
 		 $excluir = EV_SORTEO_EXCLUIR_GANADORES ? "1 = 1" : "G.HORA = '".$hora."'";
-		 $r = evRows("SET NOCOUNT ON;
-			DECLARE @p varchar(10), @c numeric(18,0), @premio numeric(18,0), @nom varchar(120);
-			SELECT TOP 1
-				@p = X.PASSPORT,
-				@c = X.COMPRA
-			FROM (".evSqlParticipantes($hora, $sorteos[$hora]).") X
-			WHERE NOT EXISTS (
-				SELECT 1 FROM T_RIFA_SORTEOS_GANADORES G
-				WHERE G.PASSPORT = X.PASSPORT AND (G.HORA = '".$hora."' OR (G.ANULADO = 0 AND ".$excluir."))
-			)
-			ORDER BY NEWID();
-			IF @p IS NOT NULL
-			BEGIN
-				SET @premio = ROUND(CASE WHEN @c > ".evNum(EV_SORTEO_TOPE_COMPRA)." THEN ".evNum(EV_SORTEO_TOPE_COMPRA)." ELSE @c END * ".EV_SORTEO_PORCENTAJE.", 0);
-				SELECT @nom = LEFT(".evSqlNombre("@p").", 120);
-				INSERT INTO T_RIFA_SORTEOS_GANADORES (HORA, MONTO_MINIMO, PASSPORT, NOMBRES, COMPRA, PREMIO, USUARIO)
-				VALUES ('".$hora."', ".evNum($sorteos[$hora]).", @p, @nom, @c, @premio, '".evUsuario()."');
-			END
-			SELECT passport = @p, nombres = @nom, compra = @c, premio = @premio;");
-		 if($r[0]['passport'] === null || $r[0]['passport'] === ''){
+		 $r = evRows("SELECT TOP 1
+						passport = X.PASSPORT,
+						nombres  = LEFT(".evSqlNombre("X.PASSPORT").", 120),
+						compra   = X.COMPRA,
+						premio   = ROUND(CASE WHEN X.COMPRA > ".evNum(EV_SORTEO_TOPE_COMPRA)." THEN ".evNum(EV_SORTEO_TOPE_COMPRA)." ELSE X.COMPRA END * ".EV_SORTEO_PORCENTAJE.", 0)
+					FROM (".evSqlParticipantes($hora, $sorteos[$hora]).") X
+					WHERE NOT EXISTS (
+						SELECT 1 FROM T_RIFA_SORTEOS_GANADORES G
+						WHERE G.PASSPORT = X.PASSPORT AND (G.HORA = '".$hora."' OR (G.ANULADO = 0 AND ".$excluir."))
+					)
+					ORDER BY NEWID()");
+		 if(count($r) == 0){
 			 evError('No hay más clientes para sortear en el sorteo de las '.$hora);
 		 }
-		 evJson(array('ok' => true, 'hora' => $hora, 'ganador' => $r[0]));
+		 $g = $r[0];
+		 evExec("INSERT INTO T_RIFA_SORTEOS_GANADORES (HORA, MONTO_MINIMO, PASSPORT, NOMBRES, COMPRA, PREMIO, USUARIO)
+				SELECT '".$hora."', ".evNum($sorteos[$hora]).", '".evEsc($g['passport'])."',
+				       LEFT(".evSqlNombre("'".evEsc($g['passport'])."'").", 120),
+				       ".evNum($g['compra']).", ".evNum($g['premio']).", '".evUsuario()."'");
+		 evJson(array('ok' => true, 'hora' => $hora, 'ganador' => $g));
 	break;
 
 	// Anula un ganador que no reclamó (queda registrado y no vuelve a salir en esa hora)

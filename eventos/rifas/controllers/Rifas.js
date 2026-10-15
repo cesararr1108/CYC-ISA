@@ -5,16 +5,22 @@
    - Premios mayores (Dinámica #1: 20 labs x $50.000 / #2: 8 labs x $1.000.000)
    ===================================================================== */
 var URL_RIFAS = '../models/Rifas.php';
+var URL_PDF_BOLETA = '../resources/pdf/pdf_boleta.php';
+var EV_VERSION = 'rifas-v4';
 var EV_DATOS = null;          // última consulta de cliente
 var EV_SORTEO_HORA = null;    // sorteo seleccionado en la pestaña de sorteos
 
 $(function(){
+	console.log('Rifas.js ' + EV_VERSION);
+	$('#evVersion').text(EV_VERSION);
 	$('#TxtPassportRifas').on('keypress', function(e){
 		if(e.which == 13){ ConsultarCliente(); }
 	}).focus();
 	$('#btnConsultar').on('click', ConsultarCliente);
 	$('#btnElectro').on('click', RegistrarElectro);
 	$('#btnMayores').on('click', RegistrarMayores);
+	$('#btnReimprimir').on('click', function(){ if(EV_DATOS){ ImprimirBoleta(EV_DATOS.cliente.codigo_sap, 1); } });
+	$(document).on('click', '.ev-imprimir', function(){ ImprimirBoleta($(this).data('pass'), 1); });
 	$('#n_lab_sin_compas').on('click', VerLabsSinCompra);
 
 	$('#btnSortear').on('click', Sortear);
@@ -55,35 +61,36 @@ function EvPost(data, ok){
 		ok(r);
 	}).fail(function(xhr){
 		console.log(xhr.responseText);
-		EvAviso('error', 'Error:', 'No fue posible comunicarse con el servidor o la respuesta no es válida');
+		var detalle = $.trim($('<div/>').html(xhr.responseText || '').text()).substring(0, 300);
+		EvAviso('error', 'Error del servidor:', detalle != '' ? detalle : 'No fue posible comunicarse con el servidor (' + xhr.status + ')');
 	});
 }
 
+// Confirmación nativa del navegador (no depende de la versión de SweetAlert)
 function EvConfirmar(titulo, texto, fn){
-	swal({
-		title: titulo,
-		text: texto,
-		type: 'warning',
-		showCancelButton: true,
-		confirmButtonText: 'Sí, continuar',
-		cancelButtonText: 'Cancelar',
-		closeOnConfirm: true
-	}, function(isConfirm){
-		// Algunas versiones de SweetAlert llaman el callback sin argumento al confirmar
-		if(isConfirm === false){ return; }
-		setTimeout(fn, 400);
-	});
+	if(window.confirm(titulo + '\n\n' + texto)){
+		fn();
+	}
+}
+
+// Imprime la boleta con el mismo PDF de PDF_Boletas()
+function ImprimirBoleta(pass, cant){
+	var url = URL_PDF_BOLETA + '?pass=' + encodeURIComponent(pass) + '&cant=' + (cant || 1) + '&r=' + new Date().getTime();
+	$('#dvPDF').html('<iframe width="100%" style="height:400px; border:0;" src="' + url + '"></iframe>');
+	$('#ModalPDF').modal('show');
 }
 
 // Mensaje visible en pantalla (no depende de SweetAlert) + alerta emergente
-function EvAviso(tipo, titulo, texto){
+function EvAviso(tipo, titulo, texto, sinPopup){
 	var clase = tipo == 'success' ? 'alert-success' : (tipo == 'error' ? 'alert-danger' : 'alert-warning');
 	$('#evMensaje').html(
 		'<div class="alert ' + clase + ' alert-dismissible" style="font-size:18px;">' +
 		  '<button type="button" class="close" data-dismiss="alert">&times;</button>' +
 		  '<b>' + Esc(titulo) + '</b> ' + Esc(texto) +
 		'</div>');
-	setTimeout(function(){ swal(titulo, texto, tipo); }, 400);
+	if(!sinPopup && typeof swal == 'function'){
+		setTimeout(function(){ swal(titulo, texto, tipo); }, 400);
+	}
 }
 
 // Deja la consulta lista para el siguiente cliente
@@ -92,7 +99,7 @@ function LimpiarCliente(){
 	$('#evResultado').hide();
 	$('#SpClienteRifas').html('');
 	$('#ResultadosRifas').html('');
-	$('#btnElectro, #btnMayores').hide().prop('disabled', false);
+	$('#btnElectro, #btnMayores, #btnReimprimir').hide().prop('disabled', false);
 	$('#TxtPassportRifas').val('').focus();
 }
 
@@ -229,12 +236,13 @@ function PintarSorteosCliente(r){
 }
 
 function PintarMayores(r){
-	var m = r.mayores, html = '', clase, mostrarBtn = false;
+	var m = r.mayores, html = '', clase, mostrarBtn = false, mostrarReimp = false;
 	html += '<b>Dinámica #1</b> (labs con ' + Moneda(m.min1) + '):' + Barra(m.labs_50, m.req1, 'warning');
 	html += '<b>Dinámica #2</b> (labs con ' + Moneda(m.min2) + '):' + Barra(m.labs_1m, m.req2, 'warning');
 
 	if(m.boleta){
 		clase = 'ev-done';
+		mostrarReimp = true;
 		html += '<div class="alert alert-info" style="margin:0;"><b>YA TIENE SU BOLETA</b> para los premios mayores</div>';
 	}else if(m.dinamica > 0 && !r.registrado){
 		clase = 'ev-no';
@@ -251,6 +259,7 @@ function PintarMayores(r){
 	$('#cardMayores').removeClass('ev-ok ev-no ev-wait ev-done').addClass(clase);
 	$('#evMayoresInfo').html(html);
 	$('#btnMayores').toggle(mostrarBtn);
+	$('#btnReimprimir').toggle(mostrarReimp);
 }
 
 function PintarDetalleLabs(r){
@@ -307,7 +316,8 @@ function RegistrarMayores(){
 		$('#btnMayores').prop('disabled', true);
 		EvPost({ op: 'EV_MAYORES_REGISTRAR', Pass: c.codigo_sap }, function(r){
 			LimpiarCliente();
-			EvAviso('success', '¡BOLETA GENERADA!', nombre + '. ' + r.msg + '.');
+			EvAviso('success', '¡BOLETA GENERADA!', nombre + '. ' + r.msg + '.', true);
+			ImprimirBoleta(c.codigo_sap, 1);
 		});
 		setTimeout(function(){ $('#btnMayores').prop('disabled', false); }, 2000);
 	});
@@ -405,10 +415,11 @@ function CargarMayores(){
 	EvPost({ op: 'EV_MAYORES_LISTA' }, function(r){
 		var html = '';
 		$.each(r.rows, function(i, m){
-			html += '<tr><td>' + (i + 1) + '</td><td>' + Esc(m.codigo_sap) + '</td><td>' + Esc(m.nombres) + '</td></tr>';
+			html += '<tr><td>' + (i + 1) + '</td><td>' + Esc(m.codigo_sap) + '</td><td>' + Esc(m.nombres) + '</td>' +
+			        '<td><button class="btn btn-xs btn-default ev-imprimir" data-pass="' + Esc(m.codigo_sap) + '"><span class="fa fa-print"></span> Imprimir</button></td></tr>';
 		});
 		$('#evMayoresTotal').text(r.rows.length);
-		$('#evMayoresLista').html(html || '<tr><td colspan="3" class="text-center">Sin boletas generadas</td></tr>');
+		$('#evMayoresLista').html(html || '<tr><td colspan="4" class="text-center">Sin boletas generadas</td></tr>');
 	});
 }
 
