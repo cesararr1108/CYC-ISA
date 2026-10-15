@@ -88,7 +88,6 @@
   <ul class="nav nav-tabs" role="tablist">
     <li class="active"><a href="#tabCliente"   data-toggle="tab"><span class="fa fa-search"></span> Consulta cliente</a></li>
     <li><a href="#tabSorteos"  data-toggle="tab"><span class="fa fa-clock-o"></span> Sorteos de la tarde</a></li>
-    <li><a href="#tabMayores"  data-toggle="tab"><span class="fa fa-trophy"></span> Premios mayores</a></li>
     <li><a href="#tabElectro"  data-toggle="tab"><span class="fa fa-plug"></span> Electromenores entregados</a></li>
   </ul>
 
@@ -210,6 +209,9 @@
                 <button class="btn btn-warning btn-lg" id="btnSortear" style="display:none;">
                   <span class="fa fa-random"></span> Sortear ganador
                 </button>
+                <a class="btn btn-primary btn-lg" id="btnImprimirBoletas" href="#" target="_blank" style="display:none;">
+                  <span class="fa fa-print"></span> Imprimir boletas
+                </a>
               </div>
               <div id="evGanadorActual"></div>
               <div class="table-responsive" style="max-height:500px; overflow:auto;">
@@ -233,34 +235,6 @@
               </table>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===================== PREMIOS MAYORES ===================== -->
-    <div class="tab-pane" id="tabMayores">
-      <div class="row">
-        <div class="col-md-8">
-          <div class="panel panel-success">
-            <div class="panel-heading"><b>CLIENTES CON BOLETA PARA PREMIOS MAYORES</b>
-              <span class="badge pull-right" id="evMayoresTotal">0</span>
-            </div>
-            <div class="table-responsive" style="max-height:600px; overflow:auto;">
-              <table class="table table-striped table-condensed">
-                <thead><tr><th>#</th><th>CÓDIGO SAP</th><th>CLIENTE</th><th></th></tr></thead>
-                <tbody id="evMayoresLista"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="alert alert-info">
-            Las boletas se generan desde <b>Consulta cliente</b> cuando el cliente valida.
-            Antes del sorteo final puede generar las boletas de todos los clientes registrados que
-            cumplan alguna dinámica y aún no la tengan.
-          </div>
-          <button class="btn btn-success btn-block" id="btnMayoresMasivo"><span class="fa fa-ticket"></span> Generar boletas pendientes</button>
-          <button class="btn btn-default btn-block" id="btnMayoresRefrescar"><span class="fa fa-refresh"></span> Actualizar lista</button>
         </div>
       </div>
     </div>

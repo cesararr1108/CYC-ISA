@@ -6,7 +6,8 @@
    ===================================================================== */
 var URL_RIFAS = '../models/Rifas.php';
 var URL_PDF_BOLETA = '../resources/pdf/pdf_boleta.php';
-var EV_VERSION = 'rifas-v4';
+var URL_PDF_BOLETAS_SORTEO = '../resources/pdf/pdf_boletas_sorteo.php';
+var EV_VERSION = 'rifas-v5';
 var EV_DATOS = null;          // última consulta de cliente
 var EV_SORTEO_HORA = null;    // sorteo seleccionado en la pestaña de sorteos
 
@@ -31,7 +32,6 @@ $(function(){
 	$('a[data-toggle="tab"]').on('shown.bs.tab', function(e){
 		var tab = $(e.target).attr('href');
 		if(tab == '#tabSorteos'){ CargarGanadores(); if(EV_SORTEO_HORA){ CargarParticipantes(EV_SORTEO_HORA); } }
-		if(tab == '#tabMayores'){ CargarMayores(); }
 		if(tab == '#tabElectro'){ CargarElectro(); }
 	});
 
@@ -343,6 +343,11 @@ function CargarParticipantes(hora, mantenerGanador){
 			'<div class="alert alert-warning">El corte de este sorteo es a las <b>' + HoraAmPm(r.hora) +
 			'</b>. La lista aún puede cambiar y el sorteo se habilita después del corte.</div>');
 		$('#btnSortear').toggle(r.cerrado && r.rows.length > 0);
+		// Un solo PDF con todas las boletas del sorteo
+		$('#btnImprimirBoletas')
+			.attr('href', URL_PDF_BOLETAS_SORTEO + '?hora=' + encodeURIComponent(r.hora) + '&r=' + new Date().getTime())
+			.html('<span class="fa fa-print"></span> Imprimir boletas ' + HoraAmPm(r.hora) + ' (' + r.rows.length + ')')
+			.toggle(r.rows.length > 0);
 
 		$.each(r.rows, function(i, p){
 			var gano = p.gano ? '<span class="label label-primary">' + HoraAmPm(p.gano) + '</span>' : '';

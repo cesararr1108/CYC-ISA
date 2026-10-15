@@ -5,9 +5,11 @@ Módulo PHP 5.4 + MSSQL (`mssql_*`) con la misma estructura del proyecto de even
 | Archivo | Descripción |
 |---|---|
 | `sql/evento_16_octubre.sql` | Crea `T_RIFA_ELECTROMENORES` y `T_RIFA_SORTEOS_GANADORES` (ejecutar una vez). |
+| `models/RifasConfig.php` | Configuración del evento (fecha, montos, horas) compartida por el modelo y el PDF. |
+| `resources/pdf/pdf_boletas_sorteo.php` | PDF con todas las boletas de un sorteo de la tarde: `?hora=15:00`. |
 | `models/Rifas.php` | Conserva los `case` existentes y agrega los nuevos `EV_*`. Configuración al inicio del archivo. |
 | `controllers/Rifas.js` | Lógica de pantalla (jQuery + SweetAlert). |
-| `views/Rifas.php` | Vista con 4 pestañas: consulta cliente, sorteos de la tarde, premios mayores, electromenores. |
+| `views/Rifas.php` | Vista con 3 pestañas: consulta cliente, sorteos de la tarde, electromenores. |
 
 ## Dinámicas
 
@@ -23,7 +25,7 @@ Módulo PHP 5.4 + MSSQL (`mssql_*`) con la misma estructura del proyecto de even
 
 Todas las validaciones se repiten en el servidor al registrar (no se confía en lo que muestra la pantalla) y la hora se toma de `GETDATE()` del SQL Server.
 
-## Configuración (`models/Rifas.php`)
+## Configuración (`models/RifasConfig.php`)
 
 - `EV_TABLA_PEDIDOS`: `T_PEDIDOS` (columnas `CODIGO`, `VALOR_TOTAL`, `PASSPORT` y `FECHA_HORA`).
 - `EV_FECHA`: `20261016`.
